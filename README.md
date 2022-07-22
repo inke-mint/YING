@@ -1,17 +1,17 @@
 # YING
 Two contracts
 
-## ying/YINGHelloNewWorld.sol
+## File: ying/YINGHelloNewWorld.sol
 Blind box contract
 
-## ying/YING.sol
+## File: ying/YING.sol
 YING official contract
 
-## hootbase/base/*
+## Path: hootbase/base/*
 hootlabs's contract base library
 
-## hootbase/utils/*
+## Path: hootbase/utils/*
 hootlabs's contract util library
 
-## hootbase/standard/*
+## Path: hootbase/standard/*
 ERC library, did a little bit of extremely simple transformation
