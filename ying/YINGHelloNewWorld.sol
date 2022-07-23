@@ -216,21 +216,19 @@ contract YINGHelloNewWorld is
     // The maximum number of mint tokens allowed selfSupply
     function selfMint(uint64 numberOfTokens_) external onlyOwner nonReentrant {
         require(numberOfTokens_ > 0, "invalid number of tokens");
-        require(
-            numberOfTokens_ <= yingCfg.maxSelfSupply,
-            "can only mint max self supply at a time"
-        );
-        require(
-            _totalMinted() + numberOfTokens_ <= yingCfg.maxSupply,
-            "max sale supply exceeded"
-        );
-        uint64 nextMinted = selfMinted + numberOfTokens_;
-        require(
-            nextMinted <= yingCfg.maxSelfSupply,
-            "max self supply exceeded"
-        );
-        _mint(_msgSender(), numberOfTokens_);
-        selfMinted = nextMinted;
+        unchecked {
+            require(
+                _totalMinted() + numberOfTokens_ <= yingCfg.maxSupply,
+                "max sale supply exceeded"
+            );
+            uint64 nextMinted = selfMinted + numberOfTokens_;
+            require(
+                nextMinted <= yingCfg.maxSelfSupply,
+                "max self supply exceeded"
+            );
+            _mint(_msgSender(), numberOfTokens_);
+            selfMinted = nextMinted;
+        }
     }
 
     function checkAndGetHolderConfig(address contractAddr_)
@@ -445,10 +443,15 @@ contract YINGHelloNewWorld is
         return _freeMintTokens[tokenId_];
     }
 
-    function getHolderMinted(address contractAddr_, uint256[] calldata tokenIDs_) external view returns (uint256[] memory) {
-        mapping(uint256=>uint256) storage tokenAmount = _holderMintedAmounts[contractAddr_];
+    function getHolderMinted(
+        address contractAddr_,
+        uint256[] calldata tokenIDs_
+    ) external view returns (uint256[] memory) {
+        mapping(uint256 => uint256) storage tokenAmount = _holderMintedAmounts[
+            contractAddr_
+        ];
         uint256[] memory amounts = new uint256[](tokenIDs_.length);
-        for(uint256 i=0;i<tokenIDs_.length; i++){
+        for (uint256 i = 0; i < tokenIDs_.length; i++) {
             amounts[i] = tokenAmount[tokenIDs_[i]];
         }
         return amounts;
@@ -504,10 +507,10 @@ contract YINGHelloNewWorld is
         returns (uint256)
     {
         if (!yingCfg.freeMintRefund) {
-            bool ok = _freeMintTokens[tokenId_];
-            if (ok) {
-                return 0;
-            }
+            require(
+                !_freeMintTokens[tokenId_],
+                "No refunds are allowed for free mint token"
+            );
         }
         return super._refundPrice(tokenId_);
     }
@@ -537,7 +540,12 @@ contract YINGHelloNewWorld is
         uint256 startTokenId,
         uint256 quantity
     ) internal virtual override(HootBaseERC721Raising, HootERC721A) {
-        HootBaseERC721Raising._beforeTokenTransfers(from, to, startTokenId, quantity);
+        HootBaseERC721Raising._beforeTokenTransfers(
+            from,
+            to,
+            startTokenId,
+            quantity
+        );
         super._beforeTokenTransfers(from, to, startTokenId, quantity);
     }
 }
