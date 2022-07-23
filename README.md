@@ -19,3 +19,8 @@ hootlabs's contract util library
 
 ### Path: hootbase/standard/*
 ERC library, did a little bit of extremely simple transformation
+
+#### File: standard/erc721a/ERC721A.sol
+like "erc721a/contracts/ERC721A.sol", did a little bit of extremely simple transformation;
+
+
