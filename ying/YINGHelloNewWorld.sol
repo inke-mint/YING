@@ -537,6 +537,7 @@ contract YINGHelloNewWorld is
         uint256 startTokenId,
         uint256 quantity
     ) internal virtual override(HootBaseERC721Raising, HootERC721A) {
+        HootBaseERC721Raising._beforeTokenTransfers(from, to, startTokenId, quantity);
         super._beforeTokenTransfers(from, to, startTokenId, quantity);
     }
 }

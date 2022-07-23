@@ -219,6 +219,7 @@ contract YING is
         address to,
         uint256 tokenId
     ) internal virtual override(HootBaseERC721Raising, HootERC721) {
+        HootBaseERC721Raising._beforeTokenTransfer(from, to, tokenId);
         super._beforeTokenTransfer(from, to, tokenId);
     }
 }
