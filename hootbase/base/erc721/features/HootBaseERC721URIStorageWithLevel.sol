@@ -54,6 +54,9 @@ abstract contract HootBaseERC721URIStorageWithLevel is HootBaseERC721URIStorage
 {
     using Strings for uint256;
 
+    event LevelBaseURIChanged(uint256 level, string uri);
+    event TokenLevelChanged(uint256 tokenId, uint256 level);
+
     // Optional mapping for token URIs
     mapping(uint256=>string) _levelPreURIs;
     mapping(uint256 => uint256) private _tokenLevels;
@@ -65,6 +68,7 @@ abstract contract HootBaseERC721URIStorageWithLevel is HootBaseERC721URIStorage
         require(levels_.length == uris_.length, "the length of Listing Level is different from that of Listing URI");
         for(uint256 i = 0; i<levels_.length; i++){
             _levelPreURIs[levels_[i]] = uris_[i];
+            emit LevelBaseURIChanged(levels_[i], uris_[i]);
         }
     }
     function setTokensLevel(uint256[] calldata tokens_, uint256[] calldata levels_)
@@ -74,11 +78,7 @@ abstract contract HootBaseERC721URIStorageWithLevel is HootBaseERC721URIStorage
         require(tokens_.length == levels_.length, "the length of Listing Token is different from that of Listing Level");
         for(uint256 i = 0; i<tokens_.length; i++){
             _tokenLevels[tokens_[i]] = levels_[i];
-        }
-    }
-    function _delTokenURI(uint256 tokenId_) internal virtual override {
-        if (_tokenLevels[tokenId_] != 0) {
-            delete _tokenLevels[tokenId_];
+            emit TokenLevelChanged(tokens_[i], levels_[i]);
         }
     }
 
