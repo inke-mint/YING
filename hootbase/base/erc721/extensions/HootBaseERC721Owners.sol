@@ -48,18 +48,27 @@ abstract contract HootBaseERC721Owners {
     /***********************************|
     |               abstract            |
     |__________________________________*/
-    function _unsafeOwnerOf(uint256 tokenId_) internal view virtual returns (address);
-
+    function _unsafeOwnerOf(uint256 tokenId_)
+        internal
+        view
+        virtual
+        returns (address);
 
     /***********************************|
     |               Core                |
     |__________________________________*/
-    function exists(uint256 tokenId_) public view virtual returns (bool){
+    function exists(uint256 tokenId_) public view virtual returns (bool) {
         return _unsafeOwnerOf(tokenId_) != address(0);
     }
-    function ownersOf(uint256[] calldata tokenIDs_) external view virtual returns (address[] memory){
+
+    function ownersOf(uint256[] calldata tokenIDs_)
+        external
+        view
+        virtual
+        returns (address[] memory)
+    {
         address[] memory owners = new address[](tokenIDs_.length);
-        for(uint256 i=0;i<tokenIDs_.length;i++){
+        for (uint256 i = 0; i < tokenIDs_.length; ++i) {
             owners[i] = _unsafeOwnerOf(tokenIDs_[i]);
         }
         return owners;

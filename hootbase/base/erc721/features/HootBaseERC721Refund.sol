@@ -52,7 +52,7 @@ abstract contract HootBaseERC721Refund is HootBase, IERC721 {
     using Address for address;
 
     event RefundConfigChanged(RefundConfig config);
-    event RefundAddressChanged(address indexed oldAddr, address indexed newAddr);
+    event RefundAddressChanged(address indexed refundAddress);
     event Refunded(address indexed from, address indexed to, uint256 tokenId, uint256 amount);
 
     constructor(){
@@ -73,14 +73,11 @@ abstract contract HootBaseERC721Refund is HootBase, IERC721 {
         return block.timestamp > refundConfig.startTime && block.timestamp < refundConfig.stopTime;
     }
     function setRefundAddress(address refundAddress_) external onlyOwner {
-        address oldAddr = refundAddress;
         refundAddress = refundAddress_;
-
-        emit RefundAddressChanged(oldAddr, refundAddress_);
+        emit RefundAddressChanged(refundAddress_);
     }
     function setRefundConfig(RefundConfig calldata cfg_) external onlyOwner {
         refundConfig = cfg_;
-
         emit RefundConfigChanged(refundConfig);
     }
 

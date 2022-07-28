@@ -95,7 +95,7 @@ abstract contract HootBaseERC721URISample is
         returns (string[] memory)
     {
         string[] memory uris = new string[](tokenIds_.length);
-        for (uint256 i = 0; i < tokenIds_.length; i++) {
+        for (uint256 i = 0; i < tokenIds_.length; ++i) {
             uint256 tokenId = tokenIds_[i];
             if(!this.exists(tokenId)){
                 uris[i]="";

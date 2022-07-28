@@ -48,18 +48,27 @@ import "../extensions/HootBaseERC721Owners.sol";
  * @title HootBaseERC721Raising
  * @author HootLabs
  */
-abstract contract HootBaseERC721Raising is HootBase, HootBaseERC721Owners, IERC721 {
-    event RaisingStatusChanged(uint256 indexed tokenId, address indexed operator, uint16 raisingType, bool isStart);
+abstract contract HootBaseERC721Raising is
+    HootBase,
+    HootBaseERC721Owners,
+    IERC721
+{
+    event RaisingStatusChanged(
+        uint256 indexed tokenId,
+        address indexed owner,
+        uint16 indexed raisingType,
+        bool isStart
+    );
     event RaisingInterrupted(uint256 indexed tokenId, address indexed operator);
     event RaisingTokenTransfered(
         address indexed from,
         address indexed to,
         uint256 indexed tokenId
     );
-    event RaisingAllowedFlagChanged(bool isRaisingAllowed);
-    event RaisingTransferAllowedFlagChanged(bool isRaisingTransferAllowed);
-
-    constructor() {}
+    event RaisingAllowedFlagChanged(
+        bool isRaisingAllowed,
+        bool isRaisingTransferAllowed
+    );
 
     struct RaisingStatus {
         uint256 raisingStartTime;
@@ -67,9 +76,15 @@ abstract contract HootBaseERC721Raising is HootBase, HootBaseERC721Owners, IERC7
         uint16 raisingType;
         bool provisionalFree;
     }
-    bool private _isRaisingAllowed;
-    bool private _isRaisingTransferAllowed;
+    struct RaisingCurrentStatus {
+        uint256 total;
+        uint256 current;
+        uint16 raisingType;
+        bool isRaising;
+    }
     mapping(uint256 => RaisingStatus) private _raisingStatuses;
+    bool public isRaisingAllowed;
+    bool public isRaisingTransferAllowed;
 
     /***********************************|
     |               Raising Config      |
@@ -78,28 +93,16 @@ abstract contract HootBaseERC721Raising is HootBase, HootBaseERC721Owners, IERC7
      * @notice setIsRaisingAllowed is used to set the global switch to control whether users are allowed to brew.
      * @param isRaisingAllowed_ set to true to allow
      */
-    function setIsRaisingAllowed(bool isRaisingAllowed_)
-        external
-        atLeastMaintainer
-    {
-        _isRaisingAllowed = isRaisingAllowed_;
-        emit RaisingAllowedFlagChanged(isRaisingAllowed_);
-    }
-
-    function isRaisingAllowed() public view returns (bool) {
-        return _isRaisingAllowed;
-    }
-
-    function setIsRaisingTransferAllowed(bool isRaisingTransferAllowed_)
-        external
-        atLeastMaintainer
-    {
-        _isRaisingTransferAllowed = isRaisingTransferAllowed_;
-        emit RaisingTransferAllowedFlagChanged(isRaisingTransferAllowed_);
-    }
-
-    function isRaisingTransferAllowed() public view returns (bool) {
-        return _isRaisingTransferAllowed;
+    function setIsRaisingAllowed(
+        bool isRaisingAllowed_,
+        bool isRaisingTransferAllowed_
+    ) external atLeastMaintainer {
+        isRaisingAllowed = isRaisingAllowed_;
+        isRaisingTransferAllowed = isRaisingTransferAllowed_;
+        emit RaisingAllowedFlagChanged(
+            isRaisingAllowed_,
+            isRaisingTransferAllowed_
+        );
     }
 
     /***********************************|
@@ -118,7 +121,7 @@ abstract contract HootBaseERC721Raising is HootBase, HootBaseERC721Owners, IERC7
     ) external nonReentrant {
         require(this.ownerOf(tokenId_) == _msgSender(), "caller is not owner");
         require(
-            isRaisingTransferAllowed(),
+            isRaisingTransferAllowed,
             "transfer while raising is not enabled"
         );
         _raisingStatuses[tokenId_].provisionalFree = true;
@@ -131,30 +134,29 @@ abstract contract HootBaseERC721Raising is HootBase, HootBaseERC721Owners, IERC7
 
     /**
      * @notice getTokenRaisingStatus is used to get the detailed raising status of a specific token.
-     * @param tokenId_ token id
-     * @return isRaising_ whether the current token is raising.
-     * @return raisingType_ raising type.
-     * @return current_ how long the token has been raising in the hands of the current hodler.
-     * @return total_ total amount of raising since the token minted.
+     * @param tokenIDs_ token id
+     * @return RaisingCurrentStatus[] how long the token has been raising in the hands of the current hodler.
      */
-    function getTokenRaisingStatus(uint256 tokenId_)
+    function getTokenRaisingStatus(uint256[] calldata tokenIDs_)
         external
         view
-        returns (
-            bool isRaising_,
-            uint16 raisingType_,
-            uint256 current_,
-            uint256 total_
-        )
+        returns (RaisingCurrentStatus[] memory)
     {
-        require(this.exists(tokenId_), "query for nonexistent token");
-        RaisingStatus memory status = _raisingStatuses[tokenId_];
-        if (status.raisingStartTime != 0) {
-            isRaising_ = true;
-            raisingType_ = status.raisingType;
-            current_ = block.timestamp - status.raisingStartTime;
+        RaisingCurrentStatus[] memory statusList = new RaisingCurrentStatus[](tokenIDs_.length);
+        for (uint256 i = 0; i < tokenIDs_.length; ++i) {
+            uint256 tokenId = tokenIDs_[i];
+            if(!this.exists(tokenId)){
+                continue;
+            }
+            RaisingStatus memory status = _raisingStatuses[tokenId];
+            if (status.raisingStartTime != 0) {
+                statusList[i].isRaising = true;
+                statusList[i].raisingType = status.raisingType;
+                statusList[i].current = block.timestamp - status.raisingStartTime;
+            }
+            statusList[i].total = status.total + statusList[i].current;
         }
-        total_ = status.total + current_;
+        return statusList;
     }
 
     function _isTokenRaising(uint256 tokenId_) internal view returns (bool) {
@@ -166,12 +168,13 @@ abstract contract HootBaseERC721Raising is HootBase, HootBaseERC721Owners, IERC7
      * only the Owner of the Token has this permission.
      * @param tokenIds_ list of tokenId
      */
-    function doTokenRaising(uint256[] calldata tokenIds_, uint16 raisingType_, bool isStart_)
-        external
-        nonReentrant
-    {
+    function doTokenRaising(
+        uint256[] calldata tokenIds_,
+        uint16 raisingType_,
+        bool isStart_
+    ) external nonReentrant {
         if (isStart_) {
-            require(isRaisingAllowed(), "raising is not allowed");
+            require(isRaisingAllowed, "raising is not allowed");
         }
         unchecked {
             for (uint256 i = 0; i < tokenIds_.length; i++) {
@@ -187,15 +190,28 @@ abstract contract HootBaseERC721Raising is HootBase, HootBaseERC721Owners, IERC7
                     if (raisingStartTime == 0) {
                         status.raisingStartTime = block.timestamp;
                         status.raisingType = raisingType_;
-                        emit RaisingStatusChanged(tokenId, _msgSender(), raisingType_, isStart_);
-                    }else{
-                        require(status.raisingType == raisingType_, "raising is already started, but with a different raising type set");
+                        emit RaisingStatusChanged(
+                            tokenId,
+                            _msgSender(),
+                            raisingType_,
+                            isStart_
+                        );
+                    } else {
+                        require(
+                            status.raisingType == raisingType_,
+                            "raising is already started, but with a different raising type set"
+                        );
                     }
                 } else {
                     if (raisingStartTime > 0) {
                         status.total += block.timestamp - raisingStartTime;
                         status.raisingStartTime = 0;
-                        emit RaisingStatusChanged(tokenId, _msgSender(), raisingType_, isStart_);
+                        emit RaisingStatusChanged(
+                            tokenId,
+                            _msgSender(),
+                            raisingType_,
+                            isStart_
+                        );
                     }
                 }
             }
@@ -213,43 +229,52 @@ abstract contract HootBaseERC721Raising is HootBase, HootBaseERC721Owners, IERC7
         nonReentrant
         atLeastMaintainer
     {
-        for (uint256 i = 0; i < tokenIds_.length; i++) {
-            uint256 tokenId = tokenIds_[i];
-            require(
-                this.exists(tokenId),
-                "operate for nonexistent token"
-            );
-            RaisingStatus storage status = _raisingStatuses[tokenId];
-            if (status.raisingStartTime == 0) {
-                continue;
-            }
-            unchecked {
+        unchecked {
+            for (uint256 i = 0; i < tokenIds_.length; i++) {
+                uint256 tokenId = tokenIds_[i];
+                address owner = this.ownerOf(tokenId);
+                RaisingStatus storage status = _raisingStatuses[tokenId];
+                if (status.raisingStartTime == 0) {
+                    continue;
+                }
                 status.total += block.timestamp - status.raisingStartTime;
                 status.raisingStartTime = 0;
+                emit RaisingStatusChanged(
+                    tokenId,
+                    owner,
+                    status.raisingType,
+                    false
+                );
+                emit RaisingInterrupted(tokenId, _msgSender());
             }
-            emit RaisingStatusChanged(tokenId, _msgSender(), status.raisingType, false);
-            emit RaisingInterrupted(tokenId, _msgSender());
         }
     }
 
     function _beforeTokenTransfer(
-        address /*from_*/,
-        address /*to_*/,
+        address, /*from_*/
+        address, /*to_*/
         uint256 tokenId_
     ) internal virtual {
         if (_isTokenRaising(tokenId_)) {
-            require(_raisingStatuses[tokenId_].provisionalFree, "token is raising");
+            require(
+                _raisingStatuses[tokenId_].provisionalFree,
+                "token is raising"
+            );
         }
     }
+
     function _beforeTokenTransfers(
-        address /*from_*/,
-        address /*to_*/,
+        address, /*from_*/
+        address, /*to_*/
         uint256 startTokenId_,
         uint256 quantity_
     ) internal virtual {
-        for (uint256 i = 0; i < quantity_; i++) {
+        for (uint256 i = 0; i < quantity_; ++i) {
             if (_isTokenRaising(startTokenId_ + i)) {
-                require(_raisingStatuses[startTokenId_ + i].provisionalFree, "token is raising");
+                require(
+                    _raisingStatuses[startTokenId_ + i].provisionalFree,
+                    "token is raising"
+                );
             }
         }
     }

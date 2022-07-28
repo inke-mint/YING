@@ -50,7 +50,7 @@ import "../hootbase/utils/HootRandTokenID.sol";
 abstract contract YINGBlind {
     function ownerOf(uint256 tokenId) public view virtual returns (address);
 
-    function isFreeMintToken(uint256 tokenId)
+    function isFreeMintYINGToken(uint256 tokenId)
         public
         view
         virtual
@@ -81,7 +81,7 @@ contract YING is
 
     struct YINGConfig {
         uint256 maxSupply;
-        bool freeMintRefund;
+        bool rejectFreeMintRefund;
     }
 
     YINGConfig public yingCfg;
@@ -186,9 +186,9 @@ contract YING is
         override
         returns (uint256)
     {
-        if (!yingCfg.freeMintRefund) {
+        if (yingCfg.rejectFreeMintRefund) {
             YINGBlind yingBlind = YINGBlind(_yingBlindAddress);
-            if (yingBlind.isFreeMintToken(tokenId_)) {
+            if (yingBlind.isFreeMintYINGToken(tokenId_)) {
                 return 0;
             }
         }

@@ -83,11 +83,6 @@ abstract contract HootBaseERC721URIStorage is
         _tokenURIs[tokenId_] = tokenURI_;
         emit TokenURIChanged(tokenId_, tokenURI_);
     }
-    function _delTokenURI(uint256 tokenId_) internal virtual {
-        if (bytes(_tokenURIs[tokenId_]).length != 0) {
-            delete _tokenURIs[tokenId_];
-        }
-    }
 
     function tokenURI(uint256 tokenId_)
         public

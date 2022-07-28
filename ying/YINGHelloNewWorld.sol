@@ -92,7 +92,7 @@ contract YINGHelloNewWorld is
     struct YINGConfig {
         uint256 maxSupply;
         uint256 maxSelfSupply;
-        bool freeMintRefund;
+        bool rejectFreeMintRefund;
     }
     struct SaleConfig {
         uint256 price;
@@ -122,6 +122,7 @@ contract YINGHelloNewWorld is
     // contract_address => contract_token_id => amount
     mapping(address => mapping(uint256 => uint256)) _holderMintedAmounts;
     mapping(uint256 => bool) _freeMintTokens;
+    mapping(uint256 => bool) _freeMintYINGTokens;
     bytes32 public merkleRoot; // merkle root for whitelist checking
     uint64 public selfMinted;
 
@@ -240,55 +241,17 @@ contract YINGHelloNewWorld is
         HolderMintConfig memory holderCfg = _holderMintCfg[contractAddr_];
         require(
             holderCfg.startTime > 0 && block.timestamp > holderCfg.startTime,
-            "free mint is not start"
+            "holder mint is not start"
         );
         require(
             block.timestamp < holderCfg.stopTime,
-            "free mint has been stoped"
+            "holder mint has been stoped"
+        );
+        require(
+            holderCfg.supplyOfHolder > 0,
+            "the input contract does not support to mint"
         );
         return holderCfg;
-    }
-
-    function freeMint(address contractAddr_, uint256[] calldata passTokenIDs_)
-        external
-        callerIsUser
-        nonReentrant
-    {
-        HolderMintConfig memory holderCfg = checkAndGetHolderConfig(
-            contractAddr_
-        );
-        require(
-            holderCfg.price == 0,
-            "the input contract does not support freeMint"
-        );
-        require(holderCfg.supplyOfHolder == 1, "can only free mint 1 tokens");
-        require(
-            passTokenIDs_.length < yingCfg.maxSupply,
-            "max sale supply exceeded"
-        );
-
-        unchecked {
-            require(
-                _totalMinted() + passTokenIDs_.length < yingCfg.maxSupply,
-                "max sale supply exceeded"
-            );
-            for (uint256 i = 0; i < passTokenIDs_.length; i++) {
-                require(
-                    _holderMintedAmounts[contractAddr_][passTokenIDs_[i]] == 0,
-                    "max sale supply exceeded"
-                );
-                // 验证是否是 owner
-                ERC721 contractAddress = ERC721(contractAddr_);
-                require(
-                    contractAddress.ownerOf(passTokenIDs_[i]) == _msgSender(),
-                    "doesn't own the token"
-                );
-                _holderMintedAmounts[contractAddr_][passTokenIDs_[i]] = 1;
-
-                _freeMintTokens[_totalMinted() + i + _startTokenId()] = true;
-            }
-            _safeMint(_msgSender(), passTokenIDs_.length);
-        }
     }
 
     function holdersSale(
@@ -302,14 +265,6 @@ contract YINGHelloNewWorld is
         );
         HolderMintConfig memory holderCfg = checkAndGetHolderConfig(
             contractAddr_
-        );
-        require(
-            holderCfg.price > 0,
-            "the input contract does not support to sale"
-        );
-        require(
-            holderCfg.supplyOfHolder > 0,
-            "the input contract does not support to mint"
         );
         require(
             tokenIDs_.length < yingCfg.maxSupply,
@@ -422,6 +377,11 @@ contract YINGHelloNewWorld is
         require(amount <= msg.value, "ether value sent is not correct");
         _safeMint(receiver, numberOfTokens_);
         refundExcessPayment(amount);
+        if (price_ == 0) {
+            for (uint256 i = 0; i < numberOfTokens_; ++i) {
+                _freeMintTokens[_totalMinted() - i] = true;
+            }
+        }
     }
 
     /**
@@ -441,6 +401,15 @@ contract YINGHelloNewWorld is
         returns (bool)
     {
         return _freeMintTokens[tokenId_];
+    }
+
+    function isFreeMintYINGToken(uint256 tokenId_)
+        public
+        view
+        virtual
+        returns (bool)
+    {
+        return _freeMintYINGTokens[tokenId_];
     }
 
     function getHolderMinted(
@@ -473,6 +442,9 @@ contract YINGHelloNewWorld is
         _burn(tokenId_);
         YINGInterface yingContract = YINGInterface(revealCfg.yingAddress);
         uint256 yingTokenId = yingContract.mintTransfer(_msgSender(), tokenId_);
+        if (isFreeMintToken(tokenId_)) {
+            _freeMintYINGTokens[yingTokenId] = true;
+        }
         return yingTokenId;
     }
 
@@ -493,6 +465,11 @@ contract YINGHelloNewWorld is
             _msgSender(),
             tokenIds_
         );
+        for (uint256 i = 0; i < yingTokenIds.length; i++) {
+            if (isFreeMintToken(tokenIds_[i])) {
+                _freeMintYINGTokens[yingTokenIds[i]] = true;
+            }
+        }
         return yingTokenIds;
     }
 
@@ -506,7 +483,7 @@ contract YINGHelloNewWorld is
         override
         returns (uint256)
     {
-        if (!yingCfg.freeMintRefund) {
+        if (yingCfg.rejectFreeMintRefund) {
             require(
                 !_freeMintTokens[tokenId_],
                 "No refunds are allowed for free mint token"

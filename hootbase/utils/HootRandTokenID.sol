@@ -40,17 +40,15 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
 
 /**
  * @title Hootbirds
  * @author HootLabs
  */
-abstract contract HootRandTokenID {
+abstract contract HootRandTokenID is ReentrancyGuard, Ownable {
     using Strings for uint256;
 
     uint256[] internal _randIndices; // Used to generate random tokenids
@@ -68,7 +66,7 @@ abstract contract HootRandTokenID {
     /***********************************|
     |               RandomTokenId       |
     |__________________________________*/
-    function _freeStores() internal {
+    function freeStores() external virtual onlyOwner nonReentrant {
         require(_remainSupply() == 0, "there is some token left");
         delete _randIndices;
     }
