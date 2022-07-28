@@ -70,6 +70,7 @@ contract YING is
     HootERC721
 {
     event YINGConfigChanged(YINGConfig cfg);
+    event YINGBlindContractChanged(address blindAddress);
     event YINGRevealed(
         uint256 indexed blindTokenId,
         uint256 indexed yingTokenId
@@ -106,6 +107,7 @@ contract YING is
     // Set authorized contract address for minting the ERC-721 token
     function setYINGBlindContract(address contractAddress_) external onlyOwner {
         _yingBlindAddress = contractAddress_;
+        emit YINGBlindContractChanged(contractAddress_);
     }
 
     /***********************************|
