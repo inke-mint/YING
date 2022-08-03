@@ -343,6 +343,10 @@ contract YINGHelloNewWorld is
         emit PartnerSaled(_msgSender(), receiver, amount_);
     }
 
+    /**
+     * @notice public sale.
+     * @param amount_ sale amount
+     */
     function publicSale(uint64 amount_)
         external
         payable
@@ -362,7 +366,6 @@ contract YINGHelloNewWorld is
         _setAux(_msgSender(), nextSupply);
     }
 
-    // The maximum number of mint tokens allowed 2 per/token
     // The maximum number of mint tokens allowed saleSupply
     function _sale(
         address receiver,
@@ -394,6 +397,10 @@ contract YINGHelloNewWorld is
         }
     }
 
+    /**
+     * @notice Determine whether it is the Token of a FreeMint
+     * @param tokenId_ YING: Hello New World token id
+     */
     function isFreeMintToken(uint256 tokenId_)
         public
         view
@@ -403,6 +410,10 @@ contract YINGHelloNewWorld is
         return _freeMintTokens[tokenId_];
     }
 
+    /**
+     * @notice Determine whether it is the Token of a FreeMint
+     * @param tokenId_ YING token id
+     */
     function isFreeMintYINGToken(uint256 tokenId_)
         public
         view
@@ -412,6 +423,9 @@ contract YINGHelloNewWorld is
         return _freeMintYINGTokens[tokenId_];
     }
 
+    /**
+     * Gets the number of Mint of the holder
+     */
     function getHolderMinted(
         address contractAddr_,
         uint256[] calldata tokenIDs_
@@ -424,6 +438,13 @@ contract YINGHelloNewWorld is
             amounts[i] = tokenAmount[tokenIDs_[i]];
         }
         return amounts;
+    }
+
+    /**
+     * gets the number of Mint during the whitelist and the public sale
+     */
+    function getSaleBalanceOf(address owner) public view returns (uint256) {
+       return _getAux(owner);
     }
 
     /**
