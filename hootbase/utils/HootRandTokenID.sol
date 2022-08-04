@@ -56,6 +56,9 @@ abstract contract HootRandTokenID is ReentrancyGuard, Ownable {
     constructor(uint256 maxSupply_) {
         require(maxSupply_ > 0, "tokenId has been exhausted");
         _randIndices = new uint256[](maxSupply_);
+        for(uint256 i=0; i<maxSupply_; i++){
+            _randIndices[i] = i+1;
+        }
     }
 
     /***********************************|
@@ -96,11 +99,16 @@ abstract contract HootRandTokenID is ReentrancyGuard, Ownable {
         return _changePos(_randIndices.length-1, 0);
     }
     function _changePos(uint256 lastestPos, uint256 pos) private returns (uint256) {
-        uint256 val = _randIndices[pos] == 0 ? pos + 1 : _randIndices[pos];
-        _randIndices[pos] = _randIndices[lastestPos] == 0
-            ? lastestPos + 1
-            : _randIndices[lastestPos];
+        uint256 val = _randIndices[pos];
+        _randIndices[pos] = _randIndices[lastestPos];
+        _randIndices[lastestPos] = val;
         return val;
+    }
+    function _unsafeGetTokenIdByIndex(uint256 index_) internal view returns (uint256) {
+        if(index_ >= _randIndices.length){
+            return 0;
+        }
+        return _randIndices[_randIndices.length - index_ - 1];
     }
 
     /***********************************|

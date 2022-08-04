@@ -53,7 +53,7 @@ import "../common/HootBase.sol";
  * @title Hootbirds
  * @author HootLabs
  */
-contract HootERC721 is
+abstract contract HootERC721 is
     HootBase,
     HootBaseERC721Owners,
     ERC721,
@@ -159,10 +159,6 @@ contract HootERC721 is
         return 0;
     }
 
-    function tokenByIndex(uint256 index) external view override returns (uint256) {
-        return _startTokenId() + index;
-    }
-
     function tokensOfOwner(address owner_)
         external
         view
@@ -191,7 +187,7 @@ contract HootERC721 is
     }
 
     /***********************************|
-    |        HootBaseERC721Owners          |
+    |        HootBaseERC721Owners       |
     |__________________________________*/
     function _unsafeOwnerOf(uint256 tokenID_) internal view virtual override returns (address){
         if (_exists(tokenID_)) {

@@ -91,6 +91,7 @@ contract YINGHelloNewWorld is
 
     struct YINGConfig {
         uint256 maxSupply;
+        uint256 maxSaleSupply;
         uint256 maxSelfSupply;
         bool rejectFreeMintRefund;
     }
@@ -218,10 +219,6 @@ contract YINGHelloNewWorld is
     function selfMint(uint64 numberOfTokens_) external onlyOwner nonReentrant {
         require(numberOfTokens_ > 0, "invalid number of tokens");
         unchecked {
-            require(
-                _totalMinted() + numberOfTokens_ <= yingCfg.maxSupply,
-                "max sale supply exceeded"
-            );
             uint64 nextMinted = selfMinted + numberOfTokens_;
             require(
                 nextMinted <= yingCfg.maxSelfSupply,
@@ -267,7 +264,7 @@ contract YINGHelloNewWorld is
             contractAddr_
         );
         require(
-            tokenIDs_.length < yingCfg.maxSupply,
+            tokenIDs_.length < yingCfg.maxSaleSupply,
             "max sale supply exceeded"
         );
 
@@ -373,7 +370,7 @@ contract YINGHelloNewWorld is
         uint256 price_
     ) internal {
         require(
-            _totalMinted() + numberOfTokens_ <= yingCfg.maxSupply,
+            _totalMinted() + numberOfTokens_ - selfMinted <= yingCfg.maxSaleSupply,
             "max sale supply exceeded"
         );
         uint256 amount = price_ * numberOfTokens_;

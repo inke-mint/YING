@@ -209,6 +209,14 @@ contract YING is
     {
         return HootBaseERC721URIStorage.tokenURI(tokenId_);
     }
+    
+    /***********************************|
+    |          HootERC721               |
+    |__________________________________*/ 
+    function tokenByIndex(uint256 index) external virtual view override returns (uint256){
+        require(index < totalMinted(), "out of range");
+        return _unsafeGetTokenIdByIndex(index);
+    }
 
     /***********************************|
     |               ERC721A             |

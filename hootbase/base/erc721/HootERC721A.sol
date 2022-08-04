@@ -149,6 +149,7 @@ contract HootERC721A is
     }
 
     function tokenByIndex(uint256 index) external view override returns (uint256) {
+        require(index < _totalMinted(), "out of range");
         return _startTokenId() + index;
     }
 
